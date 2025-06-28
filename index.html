@@ -6,7 +6,7 @@
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; }
+        body { margin: 0; overflow: hidden; background: black; }
         #startBtn {
             position: fixed;
             bottom: 20px;
@@ -28,7 +28,9 @@
     <a-scene 
         vr-mode-ui="enabled: false"
         embedded
-        arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        arjs="sourceType: webcam; 
+              detectionMode: mono_and_matrix; 
+              matrixCodeType: 3x3;"
         renderer="logarithmicDepthBuffer: true;"
         id="scene"
         style="display:none"
@@ -37,7 +39,7 @@
             gltf-model="assets/mammoth.glb"
             scale="0.05 0.05 0.05"
             position="0 0 -1.5"
-            rotation="0 180 0"
+            rotation="0 0 0"  <!-- Изменили поворот на 0 -->
             visible="false">
         </a-entity>
         
@@ -45,18 +47,56 @@
     </a-scene>
 
     <script>
-        document.getElementById('startBtn').onclick = function() {
-            // 1. Запускаем сцену
-            const scene = document.getElementById('scene');
-            scene.style.display = 'block';
-            document.getElementById('startBtn').style.display = 'none';
-            
-            // 2. Показываем модель через 2 секунды (упрощенный вариант)
-            setTimeout(() => {
-                const mammoth = document.getElementById('mammoth');
-                mammoth.setAttribute('visible', 'true');
-                console.log("Мамонт должен быть виден!");
-            }, 2000);
+        let modelPlaced = false;
+        
+        document.getElementById('startBtn').onclick = async function() {
+            try {
+                // 1. Запрос доступа к камере
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                stream.getTracks().forEach(t => t.stop());
+                
+                // 2. Запуск сцены
+                const scene = document.getElementById('scene');
+                scene.style.display = 'block';
+                document.getElementById('startBtn').style.display = 'none';
+                
+                // 3. Размещение модели
+                scene.addEventListener('loaded', () => {
+                    const mammoth = document.getElementById('mammoth');
+                    const camera = document.querySelector('[camera]');
+                    
+                    scene.addEventListener('click', () => {
+                        if (!modelPlaced) {
+                            // Получаем текущую позицию камеры
+                            const camPos = camera.getAttribute('position');
+                            const camRot = camera.getAttribute('rotation');
+                            
+                            // Размещаем мамонта перед камерой
+                            mammoth.setAttribute('position', {
+                                x: camPos.x,
+                                y: camPos.y - 0.5,  // Немного опускаем
+                                z: camPos.z - 1.5   // На 1.5м перед камерой
+                            });
+                            
+                            // Поворачиваем мамонта лицом к камере
+                            mammoth.setAttribute('rotation', {
+                                x: 0,
+                                y: camRot.y,  // Повторяем поворот камеры
+                                z: 0
+                            });
+                            
+                            mammoth.setAttribute('visible', 'true');
+                            modelPlaced = true;
+                            console.log("Мамонт размещен!");
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                alert("Ошибка: " + error.message);
+            }
         };
     </script>
 </body>
