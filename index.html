@@ -38,8 +38,8 @@
         <a-entity id="mammoth"
             gltf-model="assets/mammoth.glb"
             scale="0.05 0.05 0.05"
-            position="0 0 -1.5"
-            rotation="0 0 0"  <!-- Изменили поворот на 0 -->
+            position="0 0 0"
+            rotation="0 0 0"
             visible="false">
         </a-entity>
         
@@ -66,38 +66,4 @@
                 scene.addEventListener('loaded', () => {
                     const mammoth = document.getElementById('mammoth');
                     const camera = document.querySelector('[camera]');
-                    
-                    scene.addEventListener('click', () => {
-                        if (!modelPlaced) {
-                            // Получаем текущую позицию камеры
-                            const camPos = camera.getAttribute('position');
-                            const camRot = camera.getAttribute('rotation');
-                            
-                            // Размещаем мамонта перед камерой
-                            mammoth.setAttribute('position', {
-                                x: camPos.x,
-                                y: camPos.y - 0.5,  // Немного опускаем
-                                z: camPos.z - 1.5   // На 1.5м перед камерой
-                            });
-                            
-                            // Поворачиваем мамонта лицом к камере
-                            mammoth.setAttribute('rotation', {
-                                x: 0,
-                                y: camRot.y,  // Повторяем поворот камеры
-                                z: 0
-                            });
-                            
-                            mammoth.setAttribute('visible', 'true');
-                            modelPlaced = true;
-                            console.log("Мамонт размещен!");
-                        }
-                    });
-                });
-                
-            } catch (error) {
-                alert("Ошибка: " + error.message);
-            }
-        };
-    </script>
-</body>
-</html>
+    
