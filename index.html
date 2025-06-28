@@ -39,12 +39,7 @@
         id="arScene"
         style="display: none;"
     >
-        <a-entity id="mammoth"
-            gltf-model="assets/mammoth.glb"
-            scale="0.05 0.05 0.05"
-            rotation="0 0 0"
-            visible="false">
-        </a-entity>
+        <a-box id="testBox" color="red" position="0 0 -1" scale="0.5 0.5 0.5" visible="false"></a-box>
         <a-entity camera></a-entity>
     </a-scene>
 
@@ -56,7 +51,7 @@
             try {
                 // 1. Проверяем поддержку AR
                 if (!navigator.mediaDevices) {
-                    throw new Error("Ваш браузер не поддерживает доступ к камере");
+                    throw new Error("Ваш браузер не поддерживает AR");
                 }
                 
                 // 2. Запрашиваем камеру
@@ -69,32 +64,32 @@
                     audio: false
                 });
                 
-                // 3. Запускаем AR сцену
+                // 3. Запускаем сцену
                 scene.style.display = 'block';
                 startButton.style.display = 'none';
                 
-                // 4. Обработка клика для размещения
+                // 4. Проверяем работу AR с тестовым кубом
                 scene.addEventListener('loaded', () => {
-                    const mammoth = document.getElementById('mammoth');
+                    const testBox = document.getElementById('testBox');
+                    testBox.setAttribute('visible', 'true');
                     
-                    scene.addEventListener('click', (evt) => {
-                        if (!mammoth.getAttribute('visible')) {
-                            const camera = document.querySelector('[camera]');
-                            const pos = camera.getAttribute('position');
+                    // Если куб появился - пробуем загрузить мамонта
+                    setTimeout(() => {
+                        if (testBox.getAttribute('visible')) {
+                            const mammoth = document.createElement('a-entity');
+                            mammoth.setAttribute('gltf-model', 'assets/mammoth.glb');
+                            mammoth.setAttribute('scale', '0.05 0.05 0.05');
+                            mammoth.setAttribute('position', '0 0 -1.5');
+                            mammoth.setAttribute('rotation', '0 180 0');
+                            scene.appendChild(mammoth);
                             
-                            mammoth.setAttribute('position', {
-                                x: pos.x,
-                                y: pos.y - 0.5,
-                                z: pos.z - 1.5
-                            });
-                            
-                            mammoth.setAttribute('visible', 'true');
-                            console.log("Мамонт размещен в:", pos);
+                            testBox.setAttribute('visible', 'false');
+                            console.log("Мамонт загружен!");
                         }
-                    });
+                    }, 2000);
                 });
                 
-                // Останавливаем поток (нам нужно только разрешение)
+                // Останавливаем поток камеры
                 stream.getTracks().forEach(track => track.stop());
                 
             } catch (error) {
