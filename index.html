@@ -6,7 +6,12 @@
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: black; }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+            font-family: Arial;
+        }
         #startBtn {
             position: fixed;
             bottom: 20px;
@@ -19,11 +24,24 @@
             border-radius: 5px;
             font-size: 18px;
             z-index: 100;
+            cursor: pointer;
+        }
+        #status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
         }
     </style>
 </head>
 <body>
     <button id="startBtn">ЗАПУСТИТЬ AR</button>
+    <div id="status"></div>
 
     <a-scene 
         vr-mode-ui="enabled: false"
@@ -38,8 +56,8 @@
         <a-entity id="mammoth"
             gltf-model="assets/mammoth.glb"
             scale="0.05 0.05 0.05"
-            position="0 0 0"
-            rotation="0 0 0"
+            position="0 0 -1.5"
+            rotation="0 180 0"
             visible="false">
         </a-entity>
         
@@ -47,23 +65,58 @@
     </a-scene>
 
     <script>
-        let modelPlaced = false;
+        const startBtn = document.getElementById('startBtn');
+        const status = document.getElementById('status');
+        const scene = document.getElementById('scene');
         
-        document.getElementById('startBtn').onclick = async function() {
-            try {
-                // 1. Запрос доступа к камере
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
-                });
-                stream.getTracks().forEach(t => t.stop());
+        // Простая проверка поддержки AR
+        function checkARSupport() {
+            return navigator.mediaDevices && 
+                   navigator.mediaDevices.getUserMedia && 
+                   document.createElement('a-scene').hasAttribute('arjs');
+        }
+        
+        // Обработчик клика по кнопке
+        startBtn.addEventListener('click', function() {
+            if (!checkARSupport()) {
+                status.textContent = "Ваш браузер не поддерживает AR";
+                status.style.display = 'block';
+                return;
+            }
+            
+            status.textContent = "Запрашиваем доступ к камере...";
+            status.style.display = 'block';
+            
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                } 
+            })
+            .then(stream => {
+                // Останавливаем поток (нам нужно только разрешение)
+                stream.getTracks().forEach(track => track.stop());
                 
-                // 2. Запуск сцены
-                const scene = document.getElementById('scene');
+                // Запускаем сцену
                 scene.style.display = 'block';
-                document.getElementById('startBtn').style.display = 'none';
+                startBtn.style.display = 'none';
+                status.style.display = 'none';
                 
-                // 3. Размещение модели
-                scene.addEventListener('loaded', () => {
+                // Показываем модель через 1 секунду
+                setTimeout(() => {
                     const mammoth = document.getElementById('mammoth');
-                    const camera = document.querySelector('[camera]');
-    
+                    mammoth.setAttribute('visible', 'true');
+                    console.log("Мамонт должен быть виден!");
+                }, 1000);
+            })
+            .catch(error => {
+                status.textContent = "Ошибка: " + error.message;
+                console.error("Ошибка камеры:", error);
+            });
+        });
+        
+        // Проверяем поддержку при загрузке
+        if (!checkARSupport()) {
+            startBtn.disabled = true;
+            startBtn.textContent = "AR не поддерживает
