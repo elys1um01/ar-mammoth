@@ -18,12 +18,18 @@
             justify-content: center;
             align-items: center;
             color: white;
+            font-family: Arial, sans-serif;
+        }
+        .arjs-loader div {
+            text-align: center;
+            font-size: 1.25em;
+            padding: 20px;
         }
     </style>
 </head>
 <body style="margin: 0; overflow: hidden;">
     <div class="arjs-loader">
-        <div>Наведите камеру на пол и коснитесь экрана</div>
+        <div>Двигайте камерой, чтобы обнаружить поверхности. Нажмите на экран, чтобы разместить мамонта.</div>
     </div>
 
     <a-scene 
@@ -32,12 +38,16 @@
         arjs="sourceType: webcam; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
         renderer="logarithmicDepthBuffer: true;"
     >
+        <!-- Маркер для размещения модели -->
         <a-entity id="mammoth" 
-              gltf-model="assets/mammoth.glb" 
-              scale="0.05 0.05 0.05"
-              visible="false">
+            gltf-model="assets/mammoth.glb" 
+            scale="0.05 0.05 0.05"
+            visible="false"
+            rotation="0 180 0">
         </a-entity>
         
+        <!-- Индикатор для размещения -->
+        <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
         <a-entity camera></a-entity>
     </a-scene>
 
@@ -45,26 +55,24 @@
         const scene = document.querySelector('a-scene');
         const mammoth = document.querySelector('#mammoth');
         
-        let isModelPlaced = false;
-        
-        scene.addEventListener('click', (evt) => {
-            if (!isModelPlaced) {
-                // Размещаем модель перед камерой
-                const camera = document.querySelector('[camera]');
-                const position = camera.getAttribute('position');
-                
-                mammoth.setAttribute('position', {
-                    x: position.x,
-                    y: position.y - 0.5,
-                    z: position.z - 1
-                });
-                
-                mammoth.setAttribute('visible', 'true');
-                document.querySelector('.arjs-loader').style.display = 'none';
-                isModelPlaced = true;
-                
-                console.log("Модель размещена в позиции:", mammoth.getAttribute('position'));
-            }
+        // Ждем полной загрузки сцены
+        scene.addEventListener('loaded', () => {
+            // Размещаем модель при клике
+            scene.addEventListener('click', (evt) => {
+                if (!mammoth.getAttribute('visible')) {
+                    // Получаем позицию клика
+                    const position = evt.detail.intersection.point;
+                    
+                    // Устанавливаем модель
+                    mammoth.setAttribute('position', position);
+                    mammoth.setAttribute('visible', 'true');
+                    
+                    // Скрываем загрузчик
+                    document.querySelector('.arjs-loader').style.display = 'none';
+                    
+                    console.log("Модель размещена в позиции:", position);
+                }
+            });
         });
     </script>
 </body>
