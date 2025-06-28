@@ -24,10 +24,24 @@
             font-size: 18px;
             z-index: 100;
         }
+        #placementHint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
+            font-family: Arial;
+        }
     </style>
 </head>
 <body>
     <button id="startButton">Включить AR</button>
+    <div id="placementHint">Нажмите на экран, чтобы разместить мамонта</div>
 
     <a-scene 
         vr-mode-ui="enabled: false"
@@ -37,34 +51,59 @@
         id="arScene"
         style="display: none;"
     >
-        <a-box id="testObject" color="red" position="0 0 -1" visible="false"></a-box>
+        <a-entity id="mammoth"
+            gltf-model="assets/mammoth.glb"
+            scale="0.05 0.05 0.05"
+            rotation="0 0 0"
+            visible="false">
+        </a-entity>
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        document.getElementById('startButton').addEventListener('click', function() {
+        const startButton = document.getElementById('startButton');
+        const placementHint = document.getElementById('placementHint');
+        const scene = document.getElementById('arScene');
+        let modelPlaced = false;
+
+        startButton.addEventListener('click', function() {
             // Показываем сцену
-            document.getElementById('arScene').style.display = 'block';
+            scene.style.display = 'block';
             this.style.display = 'none';
+            placementHint.style.display = 'block';
             
-            // Проверяем работу через простой куб
-            setTimeout(() => {
-                const testObj = document.getElementById('testObject');
-                testObj.setAttribute('visible', 'true');
+            // Ждем полной загрузки сцены
+            scene.addEventListener('loaded', function() {
+                const mammoth = document.getElementById('mammoth');
                 
-                // Если куб появился - пробуем загрузить мамонта
-                if(testObj.getAttribute('visible')) {
-                    const mammoth = document.createElement('a-entity');
-                    mammoth.setAttribute('gltf-model', 'assets/mammoth.glb');
-                    mammoth.setAttribute('scale', '0.05 0.05 0.05');
-                    mammoth.setAttribute('position', '0 0 -1.5');
-                    mammoth.setAttribute('rotation', '0 180 0');
-                    document.querySelector('a-scene').appendChild(mammoth);
-                    
-                    // Убираем тестовый куб
-                    testObj.setAttribute('visible', 'false');
-                }
-            }, 2000);
+                // Обработка клика для размещения модели
+                scene.addEventListener('click', function(evt) {
+                    if (!modelPlaced) {
+                        // Получаем позицию камеры
+                        const camera = document.querySelector('[camera]');
+                        const cameraPos = camera.getAttribute('position');
+                        const cameraRot = camera.getAttribute('rotation');
+                        
+                        // Размещаем мамонта перед камерой, лицом к пользователю
+                        mammoth.setAttribute('position', {
+                            x: cameraPos.x,
+                            y: cameraPos.y - 0.5,  // Немного опускаем
+                            z: cameraPos.z - 1.5   // На 1.5 метра перед камерой
+                        });
+                        
+                        // Поворачиваем мамонта лицом к камере
+                        mammoth.setAttribute('rotation', {
+                            x: 0,
+                            y: cameraRot.y + 180,  // +180 чтобы смотрел на камеру
+                            z: 0
+                        });
+                        
+                        mammoth.setAttribute('visible', 'true');
+                        placementHint.style.display = 'none';
+                        modelPlaced = true;
+                    }
+                });
+            });
         });
     </script>
 </body>
