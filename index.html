@@ -24,58 +24,42 @@
             font-size: 18px;
             z-index: 100;
         }
-        #instructions {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            background: rgba(0,0,0,0.7);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            font-family: Arial;
-            display: none;
-            max-width: 80%;
-        }
     </style>
 </head>
 <body>
     <button id="startButton">Включить AR</button>
-    <div id="instructions">Наведите камеру на плоскую поверхность и нажмите, чтобы разместить мамонта</div>
 
     <a-scene 
         vr-mode-ui="enabled: false"
         embedded
         arjs="sourceType: webcam; 
               detectionMode: mono_and_matrix; 
-              matrixCodeType: 3x3;
-              debugUIEnabled: false;"
+              matrixCodeType: 3x3;"
         renderer="logarithmicDepthBuffer: true;"
         id="arScene"
         style="display: none;"
     >
-        <a-nft type="nft" url="assets/marker" smooth="true" smoothCount="10" id="worldMarker">
-            <a-entity id="mammoth"
-                gltf-model="assets/mammoth.glb"
-                scale="0.05 0.05 0.05"
-                rotation="0 0 0"
-                visible="false">
-            </a-entity>
-        </a-nft>
-        
+        <a-entity id="mammoth"
+            gltf-model="assets/mammoth.glb"
+            scale="0.05 0.05 0.05"
+            rotation="0 0 0"
+            visible="false">
+        </a-entity>
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
         const startButton = document.getElementById('startButton');
-        const instructions = document.getElementById('instructions');
         const scene = document.getElementById('arScene');
-        let modelPlaced = false;
-
+        
         startButton.addEventListener('click', async function() {
             try {
-                // Запрашиваем доступ к камере
+                // 1. Проверяем поддержку AR
+                if (!navigator.mediaDevices) {
+                    throw new Error("Ваш браузер не поддерживает доступ к камере");
+                }
+                
+                // 2. Запрашиваем камеру
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: 'environment',
@@ -85,35 +69,36 @@
                     audio: false
                 });
                 
-                stream.getTracks().forEach(track => track.stop());
-                
-                // Показываем сцену
+                // 3. Запускаем AR сцену
                 scene.style.display = 'block';
                 startButton.style.display = 'none';
-                instructions.style.display = 'block';
                 
-                // Ждем загрузки сцены
-                scene.addEventListener('loaded', function() {
+                // 4. Обработка клика для размещения
+                scene.addEventListener('loaded', () => {
                     const mammoth = document.getElementById('mammoth');
-                    const worldMarker = document.getElementById('worldMarker');
                     
-                    // Размещение модели по клику
-                    scene.addEventListener('click', function(evt) {
-                        if (!modelPlaced) {
-                            const intersection = evt.detail.intersection;
-                            if (intersection) {
-                                // Фиксируем позицию в реальном мире
-                                worldMarker.setAttribute('position', intersection.point);
-                                mammoth.setAttribute('visible', 'true');
-                                instructions.style.display = 'none';
-                                modelPlaced = true;
-                            }
+                    scene.addEventListener('click', (evt) => {
+                        if (!mammoth.getAttribute('visible')) {
+                            const camera = document.querySelector('[camera]');
+                            const pos = camera.getAttribute('position');
+                            
+                            mammoth.setAttribute('position', {
+                                x: pos.x,
+                                y: pos.y - 0.5,
+                                z: pos.z - 1.5
+                            });
+                            
+                            mammoth.setAttribute('visible', 'true');
+                            console.log("Мамонт размещен в:", pos);
                         }
                     });
                 });
                 
+                // Останавливаем поток (нам нужно только разрешение)
+                stream.getTracks().forEach(track => track.stop());
+                
             } catch (error) {
-                alert("Не удалось получить доступ к камере");
+                alert("Ошибка: " + error.message);
                 startButton.style.display = 'block';
             }
         });
