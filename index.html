@@ -6,97 +6,68 @@
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background: black;
-        }
-        #startButton {
-            position: absolute;
+        body { margin: 0; overflow: hidden; }
+        #startBtn {
+            position: fixed;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 15px 30px;
+            padding: 12px 24px;
             background: #4CAF50;
             color: white;
             border: none;
-            border-radius: 5px;
-            font-size: 18px;
+            border-radius: 4px;
             z-index: 100;
         }
     </style>
 </head>
 <body>
-    <button id="startButton">Включить AR</button>
+    <button id="startBtn">СТАРТ AR</button>
 
-    <a-scene 
-        vr-mode-ui="enabled: false"
-        embedded
-        arjs="sourceType: webcam; 
-              detectionMode: mono_and_matrix; 
-              matrixCodeType: 3x3;"
-        renderer="logarithmicDepthBuffer: true;"
-        id="arScene"
-        style="display: none;"
-    >
-        <a-box id="testBox" color="red" position="0 0 -1" scale="0.5 0.5 0.5" visible="false"></a-box>
+    <a-scene vr-mode-ui="enabled: false" embedded arjs id="scene" style="display:none">
+        <a-assets>
+            <a-asset-item id="mammothModel" src="assets/mammoth.glb"></a-asset-item>
+        </a-assets>
+        
+        <a-entity id="mammoth"
+            gltf-model="#mammothModel"
+            scale="0.05 0.05 0.05"
+            position="0 0 -1.5"
+            rotation="0 180 0"
+            visible="false">
+        </a-entity>
+        
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        const startButton = document.getElementById('startButton');
-        const scene = document.getElementById('arScene');
-        
-        startButton.addEventListener('click', async function() {
+        document.getElementById('startBtn').onclick = async () => {
             try {
-                // 1. Проверяем поддержку AR
-                if (!navigator.mediaDevices) {
-                    throw new Error("Ваш браузер не поддерживает AR");
-                }
-                
-                // 2. Запрашиваем камеру
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
-                    audio: false
+                // 1. Явный запрос камеры
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
                 });
+                stream.getTracks().forEach(t => t.stop());
                 
-                // 3. Запускаем сцену
+                // 2. Запуск сцены
+                const scene = document.getElementById('scene');
                 scene.style.display = 'block';
-                startButton.style.display = 'none';
+                document.getElementById('startBtn').style.display = 'none';
                 
-                // 4. Проверяем работу AR с тестовым кубом
+                // 3. Размещение модели
                 scene.addEventListener('loaded', () => {
-                    const testBox = document.getElementById('testBox');
-                    testBox.setAttribute('visible', 'true');
+                    const mammoth = document.getElementById('mammoth');
                     
-                    // Если куб появился - пробуем загрузить мамонта
-                    setTimeout(() => {
-                        if (testBox.getAttribute('visible')) {
-                            const mammoth = document.createElement('a-entity');
-                            mammoth.setAttribute('gltf-model', 'assets/mammoth.glb');
-                            mammoth.setAttribute('scale', '0.05 0.05 0.05');
-                            mammoth.setAttribute('position', '0 0 -1.5');
-                            mammoth.setAttribute('rotation', '0 180 0');
-                            scene.appendChild(mammoth);
-                            
-                            testBox.setAttribute('visible', 'false');
-                            console.log("Мамонт загружен!");
-                        }
-                    }, 2000);
+                    // Просто показываем модель перед камерой
+                    mammoth.setAttribute('visible', 'true');
+                    
+                    console.log("AR сцена готова! Мамонт должен быть виден");
                 });
-                
-                // Останавливаем поток камеры
-                stream.getTracks().forEach(track => track.stop());
                 
             } catch (error) {
-                alert("Ошибка: " + error.message);
-                startButton.style.display = 'block';
+                alert("Разрешите доступ к камере!\n" + error.message);
             }
-        });
+        };
     </script>
 </body>
 </html>
